@@ -124,7 +124,9 @@
      <div class="mb-3">
       <label for="acreage" class="form-label">Size of Property (in acres)</label>
       <input type="number" class="form-control" id="acreage" min="0" placeholder="e.g. 10" style="max-width: 180px;"/>
+      <span class="input-group-text">acres</span>
     </div>
+    <div class="form-text">Used for items priced per acre and for every threshold logic.</div>
 
     <div class="px-2">
       <div class="table-responsive">
@@ -140,39 +142,57 @@
           <tbody>
             <tr>
               <td class="study-label">Soil Test</td>
-              <td id="unit_soil">$0.00</td>
+              <td id="unit_soil">$14.00</td>
               <td id="acres_soil">0</td>
               <td id="cost_soil">$0.00</td>
             </tr>
             <tr>
               <td class="study-label">Topographic & Boundary Survey</td>
-              <td id="unit_survey">$0.00</td>
+              <td id="unit_survey">$2,750.00 flat (<5 ac) or $515.00 per acre (≥5 ac)</td>
               <td id="acres_survey">0</td>
               <td id="cost_survey">$0.00</td>
             </tr>
             <tr>
               <td class="study-label">Environmental Assessment</td>
-              <td id="unit_env">$0.00</td>
+              <td id="unit_env">$1,500.00 / acre</td>
               <td id="acres_env">0</td>
               <td id="cost_env">$0.00</td>
             </tr>
             <tr>
               <td class="study-label">Floodplain Verification</td>
-              <td id="unit_flood">$0.00</td>
-              <td id="acres_flood">0</td>
-              <td id="cost_flood">$0.00</td>
+                <td class="text-center">
+                <span class="unit">Determination $30 • Permit $2,000</span>
+              </td>
+              <td class="text-center">
+                <select id="flood_option" class="form-select form-select-sm" style="max-width:240px; margin:0 auto;">
+                  <option value="none">None</option>
+                  <option value="determination">Determination ($30)</option>
+                  <option value="permit">Permit ($2,000)</option>
+                  <option value="both">Both ($2,030)</option>
+                </select>
+            </td>
+            <td class="text-end" id="cost_flood">$0.00</td>
             </tr>
             <tr>
               <td class="study-label">Georesistivity</td>
-              <td id="unit_survey">$0.00</td>
-              <td id="acres_survey">0</td>
-              <td id="cost_survey">$0.00</td>
+              <td class="text-center"><span id="unit_geo" class="unit">$700.00 / acre</span></td>
+              <td class="text-center"><span id="acres_geo">0</span></td>
+              <td class="text-end" id="cost_geo">$0.00</td>
             </tr>
             <tr>
-              <td class="study-label">Utility Availability Research</td>
-              <td id="unit_utility">Flat</td>
-              <td class="text-center" colspan="1">—</td>
-              <td id="cost_utility">$0.00</td>
+              <td>Utility Availability Research</td>
+              <td class="text-center">
+                <span class="unit">Basic $840 • Comprehensive $2,520 • Complex $3,675</span>
+              </td>
+              <td class="text-center">
+                <select id="utility_option" class="form-select form-select-sm" style="max-width:260px; margin:0 auto;">
+                  <option value="0">None</option>
+                  <option value="840">Basic ($840)</option>
+                  <option value="2520">Comprehensive ($2,520)</option>
+                  <option value="3675">Complex / 10+ ac ($3,675)</option>
+                </select>
+              </td>
+              <td class="text-end" id="cost_utility">$0.00</td>
             </tr>
           </tbody>
         </table>
@@ -208,63 +228,119 @@
   </div>
 
     <script>
-        const pricing = {
-          Bell:        { soil: 45, survey: 150, env: 100, flood: 20, utility: 300 },
-          Burnet:      { soil: 50, survey: 160, env: 110, flood: 25, utility: 320 },
-          Travis:      { soil: 55, survey: 170, env: 120, flood: 30, utility: 350 },
-          Washington:  { soil: 50, survey: 160, env: 115, flood: 28, utility: 340 },
-          Williamson:  { soil: 60, survey: 180, env: 130, flood: 35, utility: 370 }
-        };
+      // ---- Pricing constants from your sheet ----
+      const PRICES = {
+        soilPerAcre: 14,
+        surveyFlatUnder5: 2750,
+        surveyPerAcreOverEq5: 515,
+        envPerAcre: 1500,
+        flood: { determination: 30, permit: 2000 },
+        geoPerAcre: 700
+        // Utility dropdown handled as values directly on the <option>
+      };
 
-        const county = localStorage.getItem("selectedCounty") || "Williamson";
-        const acreageInput = document.getElementById("acreage");
-        const totalCostField = document.getElementById("dueDiligenceCostDisplay");
+      // Elements
+      const acreageInput   = document.getElementById('acreage');
+      const floodOption    = document.getElementById('flood_option');
+      const utilityOption  = document.getElementById('utility_option');
 
-        const fields = [
-          { key: 'soil', label: 'unit_soil', acres: 'acres_soil', cost: 'cost_soil' },
-          { key: 'survey', label: 'unit_survey', acres: 'acres_survey', cost: 'cost_survey' },
-          { key: 'env', label: 'unit_env', acres: 'acres_env', cost: 'cost_env' },
-          { key: 'flood', label: 'unit_flood', acres: 'acres_flood', cost: 'cost_flood' }
-        ];
+      const acresSoilEl    = document.getElementById('acres_soil');
+      const acresSurveyEl  = document.getElementById('acres_survey');
+      const acresEnvEl     = document.getElementById('acres_env');
+      const acresGeoEl     = document.getElementById('acres_geo');
 
-        function updateDueDiligenceCosts() {
-          const acreage = parseFloat(acreageInput.value) || 0;
-          localStorage.setItem("enteredAcreage", acreage);
-          const rate = pricing[county];
-          let total = 0;
+      const costSoilEl     = document.getElementById('cost_soil');
+      const costSurveyEl   = document.getElementById('cost_survey');
+      const costEnvEl      = document.getElementById('cost_env');
+      const costFloodEl    = document.getElementById('cost_flood');
+      const costGeoEl      = document.getElementById('cost_geo');
+      const costUtilityEl  = document.getElementById('cost_utility');
+      const totalEl        = document.getElementById('dueDiligenceCostDisplay');
 
-          fields.forEach(({ key, label, acres, cost }) => {
-            const unit = rate[key];
-            const subtotal = unit * acreage;
-            document.getElementById(label).textContent = `$${unit.toFixed(2)}`;
-            document.getElementById(acres).textContent = acreage;
-            document.getElementById(cost).textContent = `$${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-            total += subtotal;
-          });
+      // Helpers
+      const $n = (v) => Number(v) || 0;
+      const money = (v) => `$${(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}`;
 
-          // Utility flat cost
-          const utilityCost = rate.utility;
-          document.getElementById("cost_utility").textContent = `$${utilityCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-          total += utilityCost;
+      function calculate() {
+        const ac = $n(acreageInput.value);
 
-          totalCostField.value = `$${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
-          localStorage.setItem("dueDiligenceCost", total.toFixed(2));
+        // Persist acreage
+        localStorage.setItem('enteredAcreage', ac);
 
-          L.control.measurePath().addTo(map);
+        // Soil
+        acresSoilEl.textContent = ac;
+        const soilCost = PRICES.soilPerAcre * ac;
+        costSoilEl.textContent = money(soilCost);
+
+        // Survey (threshold logic)
+        acresSurveyEl.textContent = ac;
+        const surveyCost = (ac > 0 && ac < 5)
+          ? PRICES.surveyFlatUnder5
+          : PRICES.surveyPerAcreOverEq5 * ac; // 0 ac -> $0
+        costSurveyEl.textContent = money(surveyCost);
+
+        // Environmental Assessment
+        acresEnvEl.textContent = ac;
+        const envCost = PRICES.envPerAcre * ac;
+        costEnvEl.textContent = money(envCost);
+
+        // Floodplain options
+        let floodCost = 0;
+        switch (floodOption.value) {
+          case 'determination': floodCost = PRICES.flood.determination; break;
+          case 'permit':        floodCost = PRICES.flood.permit; break;
+          case 'both':          floodCost = PRICES.flood.determination + PRICES.flood.permit; break;
+          default: floodCost = 0;
         }
+        costFloodEl.textContent = money(floodCost);
 
-        acreageInput.addEventListener("input", updateDueDiligenceCosts);
+        // Georesistivity
+        acresGeoEl.textContent = ac;
+        const geoCost = PRICES.geoPerAcre * ac;
+        costGeoEl.textContent = money(geoCost);
 
-        document.addEventListener("DOMContentLoaded", () => {
-          if (localStorage.getItem("enteredAcreage")) {
-            acreageInput.value = localStorage.getItem("enteredAcreage");
-          }
-          updateDueDiligenceCosts();
-        });
+        // Utility Availability Research (option value is the flat price)
+        const utilCost = $n(utilityOption.value);
+        costUtilityEl.textContent = money(utilCost);
 
-        function saveAndContinue() {
-          alert("Due Diligence Cost saved!");
-        }
+        // Total
+        const total = soilCost + surveyCost + envCost + floodCost + geoCost + utilCost;
+        totalEl.value = money(total);
+
+        // Persist for dashboard
+        localStorage.setItem('dueDiligenceCost', total.toFixed(2));
+      }
+
+      // Restore persisted inputs
+      (function init() {
+        const savedAcres = localStorage.getItem('enteredAcreage');
+        if (savedAcres !== null) acreageInput.value = savedAcres;
+
+        const savedFlood = localStorage.getItem('dd_flood_option');
+        if (savedFlood) floodOption.value = savedFlood;
+
+        const savedUtil = localStorage.getItem('dd_utility_option');
+        if (savedUtil) utilityOption.value = savedUtil;
+
+        calculate();
+      })();
+
+      // Events
+      acreageInput.addEventListener('input', calculate);
+      floodOption.addEventListener('change', () => {
+        localStorage.setItem('dd_flood_option', floodOption.value);
+        calculate();
+      });
+      utilityOption.addEventListener('change', () => {
+        localStorage.setItem('dd_utility_option', utilityOption.value);
+        calculate();
+      });
+
+      // Save button (optional toast/alert)
+      document.getElementById('totalResult').addEventListener('click', () => {
+        calculate();
+        alert('Due Diligence cost saved to dashboard.');
+      });
     </script>
 
 

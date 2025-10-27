@@ -19,8 +19,10 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 
     <!-- Leaflet Measure -->
-    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure-path@2.2.2/leaflet-measure-path.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure-path@2.2.2/leaflet-measure-path.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure-path@1.0.2/leaflet-measure-path.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-measure-path@1.0.2/leaflet-measure-path.min.js"></script>
+
+
 
     <style>
       #map {
@@ -88,13 +90,13 @@
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
               <label class="form-label">Material</label>
-              <select id="fenceMaterial" class="form-select">
+              <select id="fenceMaterial" class="form-select" onchange="updateFenceUnitCost()">
                 <option selected disabled>Choose...</option>
-                <option>4-Strand Barbed Wire with T-Posts and Corners</option>
-                <option>Wood</option>
-                <option>Chain Link</option>
-                <option>Wrought Iron</option>
-                <option>Vinyl</option>
+                <option data-cost="6.00">4-Strand Barbed Wire with T-Posts and Corners</option>
+                <option data-cost="28.00">Wood</option>
+                <option data-cost="17.50">Chain Link</option>
+                <option data-cost="45.00">Wrought Iron</option>
+                <option data-cost="30.00">Vinyl</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -103,7 +105,7 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">Unit Cost ($/ft)</label>
-              <input type="number" id="fenceUnitCost" class="form-control" min="0" step="0.01" value="5.00">
+              <input type="number" id="fenceUnitCost" class="form-control" min="0" step="0.01" value="6.00" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label">Subtotal ($)</label>
@@ -117,12 +119,12 @@
           <h6 class="fw-bold">Land Clearing, Mowing, and Shredding</h6>
           <div class="row g-2 align-items-end">
             <div class="col-md-2">
-              <label class="form-label">Area (acres)</label>
+              <label class="form-label">Area (Square Foot)</label>
               <input type="number" id="clearArea" class="form-control" min="0" \>
             </div>
             <div class="col-md-2">
-              <label class="form-label">Unit Cost ($/acre)</label>
-              <input type="number" id="clearUnitCost" class="form-control" min="0" step="0.01" step="0.01" value="450">
+              <label class="form-label">Unit Cost ($/square foot)</label>
+              <input type="number" id="clearUnitCost" class="form-control" min="0" step="0.01" step="0.01" value="0.50" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label">Subtotal ($)</label>
@@ -137,9 +139,10 @@
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
               <label class="form-label">Material</label>
-              <select id="drivewayMaterial" class="form-select">
+              <select id="drivewayPrepMaterial" class="form-select" onchange="updateDrivewayPrepUnitCost()">
                 <option selected disabled>Choose...</option>
-                <option>Scraping, Grading, Sub-Base compacting for 12'x300' driveway</option>
+                <option data-cost="3.25">Material (Scraping, Grading, Sub-base compacting for 12'×300' driveway)</option>
+                <option data-cost="876">18&quot; dia × 20' Culvert (per pc)</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -152,7 +155,7 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">Unit Cost ($/sqft)</label>
-              <input type="number" id="drivewayPrepUnitCost" class="form-control" min="0" step="0.01" value="0.50">
+              <input type="number" id="drivewayPrepUnitCost" class="form-control" min="0" step="0.01" value="3.25" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label">Subtotal ($)</label>
@@ -167,11 +170,11 @@
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
               <label class="form-label">Material</label>
-              <select id="drivewayMaterial" class="form-select">
+              <select id="drivewayConstMaterial" class="form-select" onchange="updateDrivewayConstCost()">
                 <option selected disabled>Choose...</option>
-                <option>6" Base + 2" Chip Seal with Proper Compaction</option>
-                <option>Concrete</option>
-                <option>Asphalt</option>
+                <option data-cost="4.00">6&quot; Base + 2&quot; Chipseal with Proper Compaction</option>
+                <option data-cost="20.00">8&quot; Base + 6&quot; Concrete</option>
+                <option data-cost="15.00">6&quot; Base + 8&quot; Asphalt</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -184,7 +187,7 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">Unit Cost ($/sqft)</label>
-              <input type="number" id="drivewayUnitCost" class="form-control" min="0" step="0.01" value="2.0">
+              <input type="number" id="drivewayUnitCost" class="form-control" min="0" step="0.01" value="4.00" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label">Subtotal ($)</label>
@@ -199,12 +202,12 @@
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
               <label class="form-label">Gate Type</label>
-              <select id="gateType" class="form-select">
+              <select id="gateType" class="form-select" onchange="updateGateUnitCost()">
                 <option selected disabled>Choose...</option>
-                <option>Ranch Gate with Posts and Solar Opener</option>
-                <option>Swing</option>
-                <option>Sliding</option>
-                <option>Double-Swing</option>
+                <option data-cost="20430">Ranch Gate with Posts and Solar Opener (Double-swing)</option>
+                <option data-cost="5500">Swing</option>
+                <option data-cost="6500">Sliding</option>
+                <option data-cost="13600">Double-swing</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -213,7 +216,7 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">Unit Cost ($/sqft)</label>
-              <input type="number" id="gateUnitCost" class="form-control" min="0" step="0.01" value="2500">
+              <input type="number" id="gateUnitCost" class="form-control" min="0" step="0.01" value="20430" readonly>
             </div>
             <div class="col-md-2">
               <label class="form-label">Subtotal ($)</label>
@@ -233,7 +236,7 @@
           </div>
           <div class="col-md-2">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="mailboxUnitCost" class="form-control" min="0" step="0.01" value="850">
+            <input type="number" id="mailboxUnitCost" class="form-control" min="0" step="0.01" value="330">
           </div>
           <div class="col-md-2">
             <label class="form-label">Subtotal ($)</label>
@@ -273,6 +276,54 @@
     </div>
 
     <script>
+      function updateFenceUnitCost() {
+        const sel = document.getElementById('fenceMaterial');
+        const inp = document.getElementById('fenceUnitCost');
+        const cost = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+        if (cost) { inp.value = cost; calculateSiteDevCost(); }
+      }
+
+      function updateDrivewayPrepUnitCost() {
+        const sel = document.getElementById('drivewayPrepMaterial');
+        const inp = document.getElementById('drivewayPrepUnitCost');
+        const lengthEl = document.getElementById('drivewayPrepLength');
+        const widthEl  = document.getElementById('drivewayPrepWidth');
+
+        const cost = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+        if (!cost) return;
+
+        inp.value = cost;
+
+        // If culvert is selected, treat Length as quantity and force Width=1.
+        const isCulvert = sel.options[sel.selectedIndex].textContent.includes('Culvert');
+        if (isCulvert) {
+          widthEl.value = 1;
+          widthEl.setAttribute('readonly', 'readonly');
+        } else {
+          widthEl.removeAttribute('readonly');
+        }
+        calculateSiteDevCost();
+      }
+
+      function updateDrivewayConstCost() {
+        const sel = document.getElementById('drivewayConstMaterial'); 
+        const inp = document.getElementById('drivewayUnitCost');
+        const costDriveType = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+        if (costDriveType) {                 
+          inp.value = costDriveType;
+          calculateSiteDevCost();
+        }
+      }
+
+      function updateGateUnitCost() {
+        const sel = document.getElementById('gateType');
+        const inp = document.getElementById('gateUnitCost');
+        const cost = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+        if (cost) { inp.value = cost; calculateSiteDevCost(); }
+      }
+    </script>
+
+    <script>
       function calculateSiteDevCost() {
         const fence = (parseFloat(document.getElementById("fenceLength").value) || 0) *
                       (parseFloat(document.getElementById("fenceUnitCost").value) || 0);
@@ -307,7 +358,7 @@
         localStorage.setItem("siteDevelopmentCost", total.toFixed(2));
       }
 
-      function saveSiteDevCost() {
+      function saveSiteDevCost(e) {
         if (e) e.preventDefault();
         alert("Site Development Cost saved!");
         return false;
@@ -412,6 +463,43 @@
         }).addTo(map);
       });
     </script>
+
+    <script>
+      function updateGateUnitCost() {
+        const gateCostInput = document.getElementById("gateUnitCost");
+        const gateSelect = document.getElementById("gateType");
+
+        if (!gateCostInput || !gateSelect) return;
+
+        const selectedOption = gateSelect.options[gateSelect.selectedIndex];
+        const cost = selectedOption.getAttribute("data-cost");
+
+        if (cost) {
+          gateCostInput.value = cost;
+          calculateSiteDevCost();
+        }
+      }
+    </script>
+
+    <script>
+      function updateDrivewayConstCost() {
+          const driveConstCostInput = document.getElementById("drivewayUnitCost");
+          const driveType = document.getElementById("drivewayMaterial");
+        
+
+        if (!driveConstCostInput || !driveType) return;
+
+        const selectedOptionDriveType = driveType.options[driveType.selectedIndex];
+        const costDriveType = selectedOptionDriveType.getAttribute("data-cost");
+        
+        if (cost) {
+          driveConstCostInput.value = cost;
+          calculateSiteDevCost();
+        }
+      }
+    
+    </script>
+
 
   </body>
 </html>

@@ -34,12 +34,12 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="waterSource" class="form-select">
+            <select id="waterSource" class="form-select" onchange="setUnitFromSelect('waterSource','waterUnitCost')">
               <option selected disabled>Choose Water Source</option>
-              <option value="public">Public Utility Water</option>
-              <option value="well">Private Water Well</option>
-              <option value="co-op">Water Co-op</option>
-              <option value="haul">Water Hauling (Tank Storage)</option>
+              <option value="public" data-cost="9975">Public Water ($9,975)</option>
+              <option value="well" data-cost="30850">Private Water Well ($30,850)</option>
+              <option value="co-op" data-cost="4500">Water Co-op ($4,500)</option>
+              <option value="haul" data-cost="0">Water Hauling (Tank Storage) ($0)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -48,7 +48,7 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="waterUnitCost" class="form-control" min="0" step="0.01" value="23220">
+            <input type="number" id="waterUnitCost" class="form-control" min="0" step="0.01" value="9975" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -63,13 +63,14 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="sewerSystem" class="form-select">
+            <select id="sewerSystem" class="form-select" onchange="setUnitFromSelect('sewerSystem','sewerUnitCost')">
               <option selected disabled>Choose Wastewater System</option>
-              <option value="septic">Septic Tank (Conventional)</option>
-              <option value="aerobic">Aerobic OSSF</option>
-              <option value="mound">Mound System</option>
-              <option value="public">Public Sewer</option>
-              <option value="composting">Composting Toilet</option>
+              <option value="septic" data-cost="14950">Septic tank (Conventional) ($14,950)</option>
+              <option value="aerobic" data-cost="16150">Aerobic OSSF ($16,150)</option>
+              <option value="mound" data-cost="20000">Mound System ($20,000)</option>
+              <option value="public_res" data-cost="3500">Public Sewer – Residential ($3,500 per LUE)</option>
+              <option value="public_com" data-cost="4500">Public Sewer – Commercial ($4,500 per LUE)</option>
+              <option value="compost" data-cost="2500">Composting Toilet ($2,500)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -78,7 +79,7 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="sewerUnitCost" class="form-control" min="0" step="0.01" value="13100">
+            <input type="number" id="sewerUnitCost" class="form-control" min="0" step="0.01" value="14950" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -93,13 +94,33 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="powerSource" class="form-select">
+            <select id="powerSource" class="form-select" onchange="setUnitFromSelect('powerSource','powerUnitCost')">
               <option selected disabled>Choose Power Source</option>
-              <option value="public">Grid Connection</option>
-              <option value="solar">Off-Grid Solar</option>
-              <option value="generator">Diesel Generator</option>
-              <option value="hybrid">Hybrid</option>
-              <option value="electricmeter">Electric Meter</option>
+              <option value="grid" data-cost="4900">Grid Connection ($4,900)</option>
+
+              <optgroup label="Off-grid Solar">
+                <option value="solar10" data-cost="13440">10 kWh ($13,440)</option>
+                <option value="solar13" data-cost="17472">13 kWh ($17,472)</option>
+                <option value="solar20" data-cost="26880">20 kWh ($26,880)</option>
+                <option value="solar26" data-cost="34944">26 kWh ($34,944)</option>
+              </optgroup>
+
+              <optgroup label="Diesel Generator">
+                <option value="gensmall" data-cost="14000">Small home (10–14 kW) ($14,000)</option>
+                <option value="genmed" data-cost="15500">Medium home (20–24 kW) ($15,500)</option>
+                <option value="genlarge" data-cost="18000">Large home (25 kW+) ($18,000)</option>
+              </optgroup>
+
+              <optgroup label="Hybrid">
+                <option value="hy5" data-cost="16975">Small homes (5 kW) ($16,975)</option>
+                <option value="hy10" data-cost="33950">Medium homes (10 kW) ($33,950)</option>
+                <option value="hy12" data-cost="40740">Large homes / small business (12 kW) ($40,740)</option>
+                <option value="hy15" data-cost="50925">Business (15 kW) ($50,925)</option>
+                <option value="hy20" data-cost="67900">Industrial / large commercial (20 kW) ($67,900)</option>
+                <option value="hy30" data-cost="101800">Large industries (30 kW) ($101,800)</option>
+              </optgroup>
+
+              <option value="meter" data-cost="4900">Electric Meter ($4,900)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -108,7 +129,7 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="powerUnitCost" class="form-control" min="0" step="0.01" value="7840">
+            <input type="number" id="powerUnitCost" class="form-control" min="0" step="0.01" value="4900" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -123,11 +144,12 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="gasType" class="form-select">
+            <select id="gasType" class="form-select" onchange="setUnitFromSelect('gasType','gasUnitCost')">
               <option selected disabled>Choose Gas Supply</option>
-              <option value="propane">Propane Tank</option>
-              <option value="natural">Natural Gas Line</option>
-              <option value="none">None</option>
+              <option value="propane_above" data-cost="1650">Propane Tank – Above-ground ($1,650)</option>
+              <option value="propane_under" data-cost="3250">Propane Tank – Underground ($3,250)</option>
+              <option value="natural" data-cost="1340">Natural Gas Line ($1,340)</option>
+              <option value="none" data-cost="0">None ($0)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -136,7 +158,7 @@
             </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="gasUnitCost" class="form-control" min="0" step="0.01" value="2800">
+            <input type="number" id="gasUnitCost" class="form-control" min="0" step="0.01" value="1650" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -151,11 +173,11 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="phoneType" class="form-select">
+            <select id="phoneType" class="form-select" onchange="setUnitFromSelect('phoneType','phoneUnitCost')">
               <option selected disabled>Choose Phone Type</option>
-              <option value="landline">Landline</option>
-              <option value="cell">Cellular</option>
-              <option value="none">None</option>
+              <option value="landline" data-cost="99">Landline ($99)</option>
+              <option value="cell" data-cost="35">Cellular ($35)</option>
+              <option value="none" data-cost="0">None ($0)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -164,7 +186,7 @@
             </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="phoneUnitCost" class="form-control" min="0" step="0.01" value="150">
+            <input type="number" id="phoneUnitCost" class="form-control" min="0" step="0.01" value="99" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -179,13 +201,13 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-4">
             <label class="form-label">Type</label>
-            <select id="internetType" class="form-select">
+            <select id="internetType" class="form-select" onchange="setUnitFromSelect('internetType','internetUnitCost')">
               <option selected disabled>Choose Internet Source</option>
-              <option value="fiber">Fiber Optic</option>
-              <option value="dsl">DSL / Wired</option>
-              <option value="satellite">Satellite</option>
-              <option value="cellular">Mobile Data</option>
-              <option value="none">None</option>
+              <option value="fiber" data-cost="150">Fiber Optic ($150)</option>
+              <option value="dsl" data-cost="149">DSL / Wired ($149)</option>
+              <option value="satellite" data-cost="500">Satellite ($500)</option>
+              <option value="cellular" data-cost="35">Mobile Data ($35)</option>
+              <option value="none" data-cost="0">None ($0)</option>
             </select>
           </div>
           <div class="col-md-2">
@@ -194,7 +216,7 @@
             </div>
           <div class="col-md-3">
             <label class="form-label">Unit Cost ($)</label>
-            <input type="number" id="internetUnitCost" class="form-control" min="0" step="0.01" value="450">
+            <input type="number" id="internetUnitCost" class="form-control" min="0" step="0.01" value="150" readonly>
           </div>
           <div class="col-md-3">
             <label class="form-label">Subtotal ($)</label>
@@ -241,17 +263,30 @@
     </script>
 
     <script>
+      function setUnitFromSelect(selectId, unitInputId) {
+        const sel = document.getElementById(selectId);
+        const unit = document.getElementById(unitInputId);
+        const cost = sel?.options[sel.selectedIndex]?.getAttribute('data-cost');
+        if (cost != null) {
+          unit.value = parseFloat(cost);
+          computeUtilityCosts();
+        }
+      }
+    </script>
+
+
+    <script>
       function computeUtilityCosts() {
         const ids = ["water", "sewer", "power", "gas", "phone", "internet"];
         let total = 0;
 
         ids.forEach((id) => {
-          const numberEl = document.getElementById(`${id}Number`);
-          const unitEl = document.getElementById(`${id}UnitCost`);
+          const numberEl   = document.getElementById(`${id}Number`);
+          const unitEl     = document.getElementById(`${id}UnitCost`);
           const subtotalEl = document.getElementById(`${id}Subtotal`);
 
-          const number = parseFloat(numberEl?.value) || 0;
-          const unit = parseFloat(unitEl?.value) || 0;
+          const number   = parseFloat(numberEl?.value) || 0;
+          const unit     = parseFloat(unitEl?.value)   || 0;
           const subtotal = number * unit;
 
           if (subtotalEl) subtotalEl.value = `$${subtotal.toFixed(2)}`;
@@ -265,22 +300,30 @@
         }
       }
 
-      function saveAndContinue() {
+      function saveAndContinue(e) {
         if (e) e.preventDefault();
         computeUtilityCosts();
         alert("Utility Connection Cost saved!");
         return false;
-        
       }
 
-      ["water", "sewer", "power", "gas", "phone", "internet"].forEach((id) => {
-        document.getElementById(`${id}Number`)?.addEventListener("input", computeUtilityCosts);
+      // change events for the selects (these update unit cost and recompute)
+      document.getElementById('waterSource')   ?.addEventListener('change', () => setUnitFromSelect('waterSource','waterUnitCost'));
+      document.getElementById('sewerSystem')   ?.addEventListener('change', () => setUnitFromSelect('sewerSystem','sewerUnitCost'));
+      document.getElementById('powerSource')   ?.addEventListener('change', () => setUnitFromSelect('powerSource','powerUnitCost'));
+      document.getElementById('gasType')       ?.addEventListener('change', () => setUnitFromSelect('gasType','gasUnitCost'));
+      document.getElementById('phoneType')     ?.addEventListener('change', () => setUnitFromSelect('phoneType','phoneUnitCost'));
+      document.getElementById('internetType')  ?.addEventListener('change', () => setUnitFromSelect('internetType','internetUnitCost'));
+
+      // number/unit inputs still live-recalculate
+      ["water","sewer","power","gas","phone","internet"].forEach((id)=>{
+        document.getElementById(`${id}Number`)  ?.addEventListener("input", computeUtilityCosts);
         document.getElementById(`${id}UnitCost`)?.addEventListener("input", computeUtilityCosts);
-        document.getElementById(`${id}Type`)?.addEventListener("change", computeUtilityCosts);
       });
 
       window.onload = computeUtilityCosts;
     </script>
+
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
