@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Land Purchase Cost</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+
+      <!-- Header -->
+      <nav class="navbar lime-header bg-dark px-3">
+          <div class="container-fluid text-white">
+          <a href="00b.dashboard.html" class="btn btn-sm btn-outline-light me-2">← Back</a>
+          <span class="navbar-brand mb-0 h6 text-white">Building Preparation Cost</span>
+          </div>
+      </nav>
+
+      <!--- Picked Property Details --->
+      <div class="mb-3 bg-light border rounded small p-2">
+          <div><strong>Address:</strong> <span id="summaryAddress">Loading...</span></div>
+          <div><strong>Parcel ID:</strong> <span id="summaryParcelID">Loading...</span></div>
+          <div><strong>Coordinates:</strong> <span id="summaryCoords">Loading...</span></div>
+      </div>
+
+      <!-- Form Body -->
+      <div class="container my-5">
+          <p class="text-muted small">
+            Estimate the costs involved in preparing the property for vertical construction. This may include demolition, grading, soil testing, temporary utilities, and permits.
+          </p>
+
+          <!-- Section 1: Demolition -->
+          <div class="mb-4">
+            <h6 class="fw-bold">Demolition of Existing Structure</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label">Structure Type</label>
+                <select class="form-select" id="demoStructure" onchange="updateDemoUnit()">
+                  <option selected disabled>Choose...</option>
+                  <option data-cost="7.00">House</option>
+                  <option data-cost="5.00">Barn</option>
+                  <option data-cost="3.00">Shed</option>
+                  <option data-cost="1.25">Other</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Size (sq ft)</label>
+                <input type="number" id="demoSize" class="form-control" min="0" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Unit Cost ($/sq ft)</label>
+                <input type="number" id="demoUnit" class="form-control" step="0.01" value="7.00" readonly />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Subtotal ($)</label>
+                <input type="text" id="demoSubtotal" class="form-control" readonly />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Grading -->
+          <div class="mb-4">
+            <h6 class="fw-bold">Grading / Land Leveling</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label">Area (acres)</label>
+                <input type="number" id="gradeArea" class="form-control" min="0" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Unit Cost</label>
+                <input id="gradeUnit" type="number" class="form-control" step="0.01" value="1.50"/>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Subtotal ($)</label>
+                <input id="gradeSubtotal" type="text" class="form-control" readonly />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Soil Testing -->
+          <div class="mb-4">
+            <h6 class="fw-bold">Soil Testing / Geotech Report</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label">Report Type</label>
+                <select id="soilType" class="form-select" onchange="updateSoilUnit()">
+                  <option selected disabled>Choose...</option>
+                  <option data-cost="518">Basic Soil Test</option>
+                  <option data-cost="2700">Geotech Report</option>
+                  <option>Both</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Unit Cost ($)</label>
+                <input type="number" id="soilUnit" class="form-control" step="0.01" value="1200"/>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Subtotal ($)</label>
+                <input type="text" id="soilSubtotal" class="form-control" readonly />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: Temporary Utilities -->
+          <div class="mb-4">
+            <h6 class="fw-bold">Temporary Utilities</h6>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="tempPower" step="0.01" value="850" />
+              <label class="form-check-label" for="tempPower">Temporary Power Pole</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="portaPotty" step="0.01" value="150"/>
+              <label class="form-check-label" for="portaPotty">Portable Toilet</label>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="tempWater" step="0.01" value="600"/>
+              <label class="form-check-label" for="tempWater">Temporary Water Connection</label>
+            </div>
+            <div class="row g-2">
+              <div class="col-md-3">
+                <label class="form-label">Total Cost for Checked Items ($)</label>
+                <input type="text" id="tempSubtotal" class="form-control" readonly />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Permits -->
+          <div class="mb-4">
+            <h6 class="fw-bold">Building Preparation Permits</h6>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label">Estimated Fee ($)</label>
+                <input type="number" id="permitFee" class="form-control" step="0.01" value="2500" />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Subtotal ($)</label>
+                <input type="text" id="permitSubtotal" class="form-control" readonly />
+              </div>
+            </div>
+          </div>
+        </div>
+
+          <hr />
+          <div class="mb-3">
+              <label class="form-label fw-bold">Total Building Preparation Cost</label>
+              <input type="text" id="totalCost" class="form-control readonly-input fw-bold" readonly />
+          </div>
+
+          <button id="total_buildCost" class="btn btn-dark" style="max-width: 180px; margin: 20px;" onclick="saveAndContinue()">Save</button>
+          </div>
+
+          <!-- Total Section (Inside the scrollable area) -->
+              <hr />      
+
+                <div class="d-flex justify-content-between gap-2 mb-3">
+                  <a href="./03utilityconnectioncost.html" class="btn btn-outline-secondary w-100">⬅️ Previous Step</a>
+                  <a href="./05zoningandlegal.html" class="btn btn-outline-secondary w-100">Next Step ➡️</a>
+                </div>
+
+                <div class="d-grid gap-2 mb-5">
+                  <a href="00b.dashboard.html" class="btn btn-dark">🏠 Back to Cost Dashboard</a>
+                  <a href="./09finalstep.html" class="btn btn-outline-dark">✅ Review Your Estimate with LHT</a>
+                </div>
+                </div> <!-- This closes #formScrollableArea -->
+          </div>
+
+        <script>
+          function updateDemoUnit(){
+            const sel = document.getElementById('demoStructure');
+            const cost = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+            if(cost){
+              document.getElementById('demoUnit').value = cost;
+              calculateBuildingPrepCost();
+            }
+          }
+
+          function updateSoilUnit(){
+            const sel = document.getElementById('soilType');
+            const cost = sel.options[sel.selectedIndex]?.getAttribute('data-cost');
+            if(cost){
+              document.getElementById('soilUnit').value = cost;
+              calculateBuildingPrepCost();
+            }
+          }
+
+        </script>
+
+        <script>
+          function formatUSD(num){
+            return '$' + Number(num).toLocaleString(undefined,{minimumFractionDigits:2});
+          }
+
+          function updateDemoUnit(){
+            const sel=document.getElementById('demoStructure');
+            const cost=sel?.options[sel.selectedIndex]?.getAttribute('data-cost');
+            if(cost){
+              const unit=document.getElementById('demoUnit');
+              if(unit){ unit.value=cost; }
+              calculateBuildingPrepCost();
+            }
+          }
+
+          function calculateBuildingPrepCost(){
+            let total=0;
+
+            // DEMOLITION
+            const size  = parseFloat(document.getElementById('demoSize')?.value) || 0;
+            const unit  = parseFloat(document.getElementById('demoUnit')?.value) || 0;
+            const demoSubtotal = size * unit;
+            const demoSubEl = document.getElementById('demoSubtotal');
+            if(demoSubEl) demoSubEl.value = formatUSD(demoSubtotal);
+            total += demoSubtotal;
+
+            // GRADING
+            const gArea = parseFloat(document.getElementById('gradeArea')?.value) || 0;
+            const gUnit = parseFloat(document.getElementById('gradeUnit')?.value) || 0;
+            const gSub  = gArea * gUnit;
+            const gSubEl = document.getElementById('gradeSubtotal');
+            if(gSubEl) gSubEl.value = formatUSD(gSub);
+            total += gSub;
+
+            // SOIL TEST
+            const soilSel=document.getElementById('soilType');
+            let soilCost=0;
+            if(soilSel){
+              const val=soilSel.value;
+              if(val==="Basic Soil Test") soilCost=518;
+              else if(val==="Geotech Report") soilCost=2700;
+              else if(val==="Both") soilCost=3218;
+            }
+            const soilSub=document.getElementById('soilSubtotal');
+            if(soilSub) soilSub.value=formatUSD(soilCost);
+            total+=soilCost;
+
+            // TEMP UTILITIES
+            let temp=0;
+            if(document.getElementById('tempPower')?.checked)  temp+=parseFloat(document.getElementById('tempPower').value);
+            if(document.getElementById('portaPotty')?.checked) temp+=parseFloat(document.getElementById('portaPotty').value);
+            if(document.getElementById('tempWater')?.checked)  temp+=parseFloat(document.getElementById('tempWater').value);
+            const tempSub=document.getElementById('tempSubtotal');
+            if(tempSub) tempSub.value=formatUSD(temp);
+            total+=temp;
+
+            // PERMIT
+            const pFee=parseFloat(document.getElementById('permitFee')?.value)||0;
+            const pSub=document.getElementById('permitSubtotal');
+            if(pSub) pSub.value=formatUSD(pFee);
+            total+=pFee;
+
+            // TOTAL
+            const totalEl=document.getElementById('totalCost');
+            if(totalEl) totalEl.value=formatUSD(total);
+            localStorage.setItem('buildingPrepCost', total.toFixed(2));
+          }
+
+          function saveAndContinue(){
+            calculateBuildingPrepCost();
+            alert('Building Preparation Cost saved.');
+          }
+
+          window.onload=()=>{
+            calculateBuildingPrepCost();
+            document.querySelectorAll('input,select').forEach(el=>{
+              el.addEventListener('input',calculateBuildingPrepCost);
+              el.addEventListener('change',calculateBuildingPrepCost);
+            });
+          };
+          </script>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
