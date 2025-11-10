@@ -1,109 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Land Calculator | Live Tracker</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Land Calculator | Live Tracker + Route</title>
 
-  <!-- Leaflet CSS -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-  />
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-    #map {
-      height: 100vh;
-      width: 100%;
+    html,body { height:100%; margin:0; }
+    #map { height:100vh; width:100%; }
+    .panel {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1200;
+      background: rgba(255,255,255,0.95);
+      border-radius:8px;
+      padding:8px 12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      font-size: 14px;
     }
     .legend {
       position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.2);
-      padding: 0.5rem 0.75rem;
-      font-size: 0.85rem;
-      z-index: 1000;
+      bottom: 12px;
+      left: 12px;
+      z-index:1200;
+      background:white;
+      padding:8px;
+      border-radius:6px;
+      box-shadow:0 4px 10px rgba(0,0,0,0.12);
+      font-size:13px;
     }
+    .small { font-size:12px; color:#555; }
+    button.btn { background:#222; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+    button.btn:disabled { opacity:0.6; cursor:not-allowed; }
   </style>
 </head>
-
 <body>
-  <!-- MAP -->
   <div id="map"></div>
 
-  <!-- LEGEND -->
-  <div class="legend">
-    <b>📍 Live Tracker</b><br>
-    Blue Marker – Your Current Location<br>
-    Red Marker – Property Location
+  <div class="panel" id="infoPanel">
+    <div style="display:flex; gap:8px; align-items:center;">
+      <b>Live Tracker & Route</b>
+      <div style="margin-left:8px" class="small" id="status">Initializing…</div>
+    </div>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button id="centerBtn" class="btn">Center on Me</button>
+      <button id="setDestBtn" class="btn">Set Destination (click map)</button>
+      <button id="clearRouteBtn" class="btn" disabled>Clear Route</button>
+    </div>
+    <div style="margin-top:8px;" id="routeInfo" class="small"></div>
   </div>
 
-  <!-- Leaflet JS -->
+  <div class="legend">
+    <div>📍 <b>Your position</b></div>
+    <div>🏡 <b>Property / Destination</b></div>
+    <div style="margin-top:6px;" id="hint" class="small">Click the map to set a destination or load a saved property.</div>
+  </div>
+
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
   <script>
-    // Default map center (Austin, TX)
-    const map = L.map('map').setView([30.2672, -97.7431], 10);
-
-    // Base layer
+    // ---------- Setup map ----------
+    const map = L.map('map').setView([30.2672, -97.7431], 11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Retrieve stored property location from localStorage (if any)
-    const propertyLat = localStorage.getItem('latitude');
-    const propertyLon = localStorage.getItem('longitude');
+    // Icons
+    const userIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png', iconSize: [28,28], iconAnchor:[14,28] });
+    const propIcon = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize:[32,32], iconAnchor:[16,32] });
 
-    if (propertyLat && propertyLon) {
-      L.marker([propertyLat, propertyLon], {
-        icon: L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        })
-      }).addTo(map)
-        .bindPopup('🏡 Selected Property')
-        .openPopup();
+    // State
+    let userMarker = null;
+    let destMarker = null;
+    let routeLayer = null;
+    let watchId = null;
+    let waitingForDestClick = false;
 
-      map.setView([propertyLat, propertyLon], 14);
+    const statusEl = document.getElementById('status');
+    const routeInfoEl = document.getElementById('routeInfo');
+    const centerBtn = document.getElementById('centerBtn');
+    const setDestBtn = document.getElementById('setDestBtn');
+    const clearRouteBtn = document.getElementById('clearRouteBtn');
+
+    // Try to preload property coords from localStorage (previous step)
+    const storedLat = localStorage.getItem('latitude');
+    const storedLon = localStorage.getItem('longitude');
+    if (storedLat && storedLon) {
+      setDestination(parseFloat(storedLat), parseFloat(storedLon));
+      status('Loaded saved property');
     }
 
-    // Live tracker (browser geolocation)
+    // ---------- Geolocation (watchPosition) ----------
+    function startWatch() {
+      if (!navigator.geolocation) {
+        alert('Geolocation not supported.');
+        status('Geolocation unavailable');
+        return;
+      }
+      watchId = navigator.geolocation.watchPosition(onPosition, onGeoError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 });
+      status('Tracking enabled');
+    }
+
+    function onPosition(pos) {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      if (userMarker) {
+        userMarker.setLatLng([lat, lon]);
+      } else {
+        userMarker = L.marker([lat, lon], { icon: userIcon }).addTo(map).bindPopup('You are here');
+      }
+
+      // Optionally center map first time
+      if (!map._userCentered) {
+        map.setView([lat, lon], 15);
+        map._userCentered = true;
+      }
+
+      // If destination exists, (re)calculate route
+      if (destMarker) {
+        drawRoute([lon, lat], [destMarker.getLatLng().lng, destMarker.getLatLng().lat]);
+      }
+    }
+
+    function onGeoError(err) {
+      console.error('Geo error', err);
+      status('Location error');
+    }
+
+    // ---------- Destination handling ----------
+    function setDestination(lat, lon) {
+      if (destMarker) destMarker.remove();
+      destMarker = L.marker([lat, lon], { icon: propIcon }).addTo(map).bindPopup('Destination').openPopup();
+      localStorage.setItem('route_dest_lat', lat);
+      localStorage.setItem('route_dest_lon', lon);
+      clearRouteBtn.disabled = false;
+      status('Destination set');
+      // If user position exists, draw route immediately
+      if (userMarker) {
+        const user = userMarker.getLatLng();
+        drawRoute([user.lng, user.lat], [lon, lat]);
+      } else {
+        // If no user position yet, center on destination
+        map.setView([lat, lon], 14);
+      }
+    }
+
+    map.on('click', (e) => {
+      if (waitingForDestClick) {
+        setDestination(e.latlng.lat, e.latlng.lng);
+        waitingForDestClick = false;
+        setDestBtn.textContent = 'Set Destination (click map)';
+      }
+    });
+
+    // ---------- Routing (OSRM public demo) ----------
+    // NOTE: This hits the public OSRM demo server. For production, host your own or use a commercial routing API.
+    async function drawRoute(fromLonLat, toLonLat) {
+      // fromLonLat and toLonLat are [lon, lat]
+      const coords = `${fromLonLat[0]},${fromLonLat[1]};${toLonLat[0]},${toLonLat[1]}`;
+      const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`;
+
+      try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Routing error ' + r.status);
+        const data = await r.json();
+        if (!data.routes || !data.routes.length) {
+          console.warn('No route found');
+          routeInfoEl.textContent = 'No route available';
+          return;
+        }
+
+        const route = data.routes[0];
+        const geom = route.geometry;
+
+        // Remove existing route
+        if (routeLayer) routeLayer.remove();
+
+        // Draw polyline
+        routeLayer = L.geoJSON(geom, {
+          style: { color: '#1f78b4', weight: 5, opacity: 0.85 }
+        }).addTo(map);
+
+        // Fit bounds
+        const bounds = routeLayer.getBounds();
+        map.fitBounds(bounds, { padding: [60, 60] });
+
+        // Show info (distance in km, duration in minutes)
+        const distKm = (route.distance / 1000).toFixed(2);
+        const mins = Math.round(route.duration / 60);
+        routeInfoEl.innerHTML = `<b>Distance:</b> ${distKm} km &nbsp; • &nbsp; <b>ETA:</b> ${mins} min`;
+
+        status('Route displayed');
+        clearRouteBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        routeInfoEl.textContent = 'Route error';
+        status('Routing failed');
+      }
+    }
+
+    // ---------- UI Controls ----------
+    centerBtn.addEventListener('click', () => {
+      if (userMarker) map.setView(userMarker.getLatLng(), 16);
+    });
+
+    setDestBtn.addEventListener('click', () => {
+      waitingForDestClick = !waitingForDestClick;
+      setDestBtn.textContent = waitingForDestClick ? 'Click map to choose destination (cancel)' : 'Set Destination (click map)';
+      status(waitingForDestClick ? 'Waiting for map click to set destination' : 'Ready');
+    });
+
+    clearRouteBtn.addEventListener('click', () => {
+      if (destMarker) { destMarker.remove(); destMarker = null; localStorage.removeItem('route_dest_lat'); localStorage.removeItem('route_dest_lon'); }
+      if (routeLayer) { routeLayer.remove(); routeLayer = null; }
+      routeInfoEl.textContent = '';
+      clearRouteBtn.disabled = true;
+      status('Route cleared');
+    });
+
+    // Helper for status
+    function status(msg) {
+      statusEl.textContent = msg;
+    }
+
+    // ---------- Init ----------
+    startWatch();
+
+    // If saved destination in localStorage (older keys), restore
+    const oldLat = localStorage.getItem('latitude') || localStorage.getItem('route_dest_lat');
+    const oldLon = localStorage.getItem('longitude') || localStorage.getItem('route_dest_lon');
+    if (oldLat && oldLon) {
+      setDestination(parseFloat(oldLat), parseFloat(oldLon));
+    }
+
+    // Recalculate route periodically if both markers exist (to keep ETA updated)
+    setInterval(() => {
+      if (userMarker && destMarker) {
+        const u = userMarker.getLatLng();
+        const d = destMarker.getLatLng();
+        drawRoute([u.lng, u.lat], [d.lng, d.lat]);
+      }
+    }, 30_000); // every 30s - adjust as needed
+
+  </script>
+
+  <script>
+    let userLat, userLon, destinationMarker;
+  
+    // Initialize map
+    const map = L.map('map').setView([30.2672, -97.7431], 10);
+  
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+  
+    // Live position watcher
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-
-          if (window.userMarker) {
-            window.userMarker.setLatLng([lat, lon]);
+          userLat = pos.coords.latitude;
+          userLon = pos.coords.longitude;
+  
+          if (!window.userMarker) {
+            window.userMarker = L.marker([userLat, userLon]).addTo(map)
+              .bindPopup("📍 You are here").openPopup();
+            map.setView([userLat, userLon], 14);
           } else {
-            window.userMarker = L.marker([lat, lon], {
-              icon: L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/447/447031.png',
-                iconSize: [28, 28],
-                iconAnchor: [14, 28]
-              })
-            }).addTo(map)
-              .bindPopup('📍 You are here')
-              .openPopup();
+            window.userMarker.setLatLng([userLat, userLon]);
           }
         },
-        (err) => console.error('Geolocation error:', err),
+        (err) => console.error("Geolocation error:", err),
         { enableHighAccuracy: true }
       );
-    } else {
-      alert('Your browser does not support geolocation.');
+    }
+  
+    // Click to choose destination
+    map.on('click', async function (e) {
+      const destLat = e.latlng.lat;
+      const destLon = e.latlng.lng;
+  
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+  
+      destinationMarker = L.marker([destLat, destLon], {
+        icon: L.icon({
+          iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+          iconSize: [32, 32],
+          iconAnchor: [16, 32]
+        })
+      }).addTo(map).bindPopup("🏡 Destination").openPopup();
+  
+      if (userLat && userLon) {
+        const distanceKm = getDistance(userLat, userLon, destLat, destLon);
+        alert(`Distance: ${distanceKm.toFixed(2)} km`);
+  
+        // Optional: Draw line between you and destination
+        if (window.routeLine) map.removeLayer(window.routeLine);
+        window.routeLine = L.polyline([[userLat, userLon], [destLat, destLon]], {
+          color: 'blue',
+          weight: 4,
+          opacity: 0.7
+        }).addTo(map);
+      } else {
+        alert("Waiting for your current location...");
+      }
+    });
+  
+    // Haversine formula (straight-line distance)
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radius of Earth (km)
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     }
   </script>
+
 </body>
 </html>
